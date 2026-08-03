@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ironlog">
+<meta name="theme-color" content="#12100d">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%2312100d'/%3E%3Cg%3E%3Crect x='30' y='68' width='16' height='44' rx='5' fill='%23d6a24a'/%3E%3Crect x='134' y='68' width='16' height='44' rx='5' fill='%23d6a24a'/%3E%3Crect x='16' y='78' width='12' height='24' rx='4' fill='%23d6a24a'/%3E%3Crect x='152' y='78' width='12' height='24' rx='4' fill='%23d6a24a'/%3E%3Crect x='44' y='84' width='92' height='12' rx='6' fill='%23d6a24a'/%3E%3C/g%3E%3C/svg%3E">
+<title>Ironlog</title>
+<style>
+:root{
+  --bg:#12100d; --panel:#1c1915; --panel2:#252019; --line:#332c22;
+  --ink:#f0e9dc; --ink2:#a89e8c; --ink3:#6f665a;
+  --gold:#d6a24a; --gold-dim:#8a6d33;
+  --bench:#5b9bd5; --pull:#63b58a; --squat:#e0794a;
+  --radius:14px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif; -webkit-font-smoothing:antialiased;}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); min-height:100vh;}
+.wrap{max-width:600px; margin:0 auto; padding:0 18px 130px;}
+header{padding:20px 2px 12px; display:flex; align-items:baseline; justify-content:space-between;}
+.brand{font-weight:700; font-size:25px; letter-spacing:-0.5px;}
+.brand b{color:var(--gold);}
+.tag{font-size:12px; color:var(--ink3); letter-spacing:0.5px; text-transform:uppercase;}
+.weekbar{display:flex; align-items:center; gap:10px; background:var(--panel); border:0.5px solid var(--line);
+  border-radius:12px; padding:8px 10px; margin-bottom:14px;}
+.weekbar button{background:var(--panel2); border:0.5px solid var(--line); color:var(--ink); width:38px; height:38px;
+  border-radius:9px; font-size:20px; font-family:inherit;}
+.weekbar .wk{flex:1; text-align:center;}
+.weekbar .wk .n{font-size:16px; font-weight:700;}
+.weekbar .wk .c{font-size:11px; color:var(--ink3); text-transform:uppercase; letter-spacing:0.5px;}
+.goals{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-bottom:18px;}
+.goal{background:var(--panel); border:0.5px solid var(--line); border-radius:var(--radius); padding:12px 12px;}
+.goal .lab{font-size:11px; color:var(--ink2); text-transform:uppercase; letter-spacing:0.6px;}
+.goal .val{font-size:24px; font-weight:700; margin-top:3px; font-variant-numeric:tabular-nums;}
+.goal .sub{font-size:11px; color:var(--ink3); margin-top:2px;}
+.goal .bar{height:4px; background:var(--panel2); border-radius:3px; margin-top:8px; overflow:hidden;}
+.goal .bar i{display:block; height:100%; border-radius:3px; transition:width .5s;}
+.goal.bench .bar i{background:var(--bench);} .goal.pull .bar i{background:var(--pull);} .goal.squat .bar i{background:var(--squat);}
+.seg{display:flex; background:var(--panel); border-radius:12px; padding:4px; gap:4px; margin-bottom:14px;}
+.seg button{flex:1; border:none; background:transparent; color:var(--ink2); font-size:14px; font-weight:600;
+  padding:9px 0; border-radius:9px; font-family:inherit; transition:all .15s;}
+.seg button.on{background:var(--gold); color:#231a08;}
+.daymeta{font-size:12px; color:var(--ink3); margin:0 2px 10px; display:flex; justify-content:space-between;}
+.daymeta .hiit{color:var(--gold);}
+.card{background:var(--panel); border:0.5px solid var(--line); border-radius:var(--radius); overflow:hidden; margin-bottom:16px;}
+.rowx{display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:0.5px solid var(--line);}
+.rowx:last-child{border-bottom:none;}
+.rowx .ex{flex:1; min-width:0;}
+.rowx .ex .n{font-size:14.5px; font-weight:600; letter-spacing:-0.2px;}
+.rowx .ex .s{font-size:12px; color:var(--ink2); margin-top:2px;}
+.rowx .ex .s .t{color:var(--gold); font-weight:600;}
+.rowx .fields{display:flex; gap:7px; align-items:center;}
+.rowx .fld{display:flex; flex-direction:column; align-items:center; gap:3px;}
+.rowx .fld label{font-size:9px; color:var(--ink3); text-transform:uppercase; letter-spacing:0.5px;}
+.rowx input{width:56px; height:38px; background:var(--panel2); border:0.5px solid var(--line);
+  border-radius:9px; color:var(--ink); text-align:center; font-size:16px; font-weight:600; font-family:inherit; outline:none;}
+.rowx input:focus{border-color:var(--gold);}
+.rowx input::placeholder{color:var(--ink3); font-weight:400;}
+.actions{display:flex; gap:10px; margin-bottom:20px;}
+.btn{flex:1; height:50px; border-radius:13px; border:none; font-family:inherit; font-size:16px; font-weight:700; letter-spacing:-0.2px;}
+.btn.primary{background:var(--gold); color:#231a08;} .btn.primary:active{background:var(--gold-dim);}
+.chartcard{background:var(--panel); border:0.5px solid var(--line); border-radius:var(--radius); padding:16px 16px 14px;}
+.chartcard .chd{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
+.chartcard h3{margin:0; font-size:16px; font-weight:700;}
+.chartcard select{background:var(--panel2); border:0.5px solid var(--line); color:var(--ink); font-family:inherit;
+  font-size:13px; padding:7px 9px; border-radius:9px; max-width:58%;}
+.chartcard .metricrow{display:flex; gap:6px; margin-bottom:12px;}
+.chartcard .metricrow button{flex:1; background:var(--panel2); border:0.5px solid var(--line); color:var(--ink2);
+  font-family:inherit; font-size:12px; font-weight:600; padding:7px 0; border-radius:8px;}
+.chartcard .metricrow button.on{background:var(--gold); color:#231a08; border-color:var(--gold);}
+.chartwrap{position:relative; height:210px;}
+.chartempty{text-align:center; color:var(--ink3); font-size:13px; padding:60px 10px; line-height:1.6;}
+.log{margin-top:20px;}
+.logh{display:flex; align-items:center; justify-content:space-between; margin:0 0 10px;}
+.log h3{font-size:13px; color:var(--ink2); text-transform:uppercase; letter-spacing:0.7px; margin:0;}
+.exportbtn{background:var(--panel2); border:0.5px solid var(--line); color:var(--gold); font-family:inherit;
+  font-size:12px; font-weight:700; padding:7px 13px; border-radius:9px; letter-spacing:0.3px;}
+.exportbtn:active{background:var(--line);}
+.exportbtn:disabled{color:var(--ink3); opacity:.5;}
+.logsession{background:var(--panel); border:0.5px solid var(--line); border-radius:12px; margin-bottom:9px; overflow:hidden;}
+.logsession .lh{display:flex; align-items:center; gap:10px; padding:11px 14px; font-size:14px;}
+.logsession .dt{color:var(--ink3); font-size:12px; font-variant-numeric:tabular-nums;}
+.logsession .pill{font-size:11px; padding:3px 8px; border-radius:20px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px;}
+.pill.push{background:#2a2436; color:#b6a4e0;} .pill.pull{background:#1e2f28; color:#7fcaa2;} .pill.legs{background:#33261c; color:#e0a373;}
+.logsession .wk{font-size:11px; color:var(--ink3);}
+.logsession .del{margin-left:auto; background:none; border:none; color:var(--ink3); font-size:18px; padding:4px 6px;}
+.logsession .lb{padding:0 14px 11px; font-size:12.5px; color:var(--ink2); line-height:1.7;}
+.logsession .lb .exn{color:var(--ink);}
+.empty{text-align:center; color:var(--ink3); font-size:13px; padding:24px 10px; line-height:1.6;}
+.install{position:fixed; left:14px; right:14px; bottom:calc(14px + env(safe-area-inset-bottom));
+  background:var(--panel2); border:0.5px solid var(--line); border-radius:14px; padding:14px 16px;
+  display:none; align-items:center; gap:12px; box-shadow:0 8px 30px rgba(0,0,0,.5); z-index:20;}
+.install.show{display:flex;}
+.install .txt{flex:1; font-size:13px; line-height:1.5; color:var(--ink2);}
+.install .txt b{color:var(--ink);}
+.install .x{background:none; border:none; color:var(--ink3); font-size:22px; padding:0 4px;}
+.toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(90px + env(safe-area-inset-bottom));
+  background:var(--gold); color:#231a08; font-weight:700; font-size:14px; padding:10px 18px; border-radius:20px;
+  opacity:0; transition:opacity .25s; pointer-events:none; z-index:30;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="brand">Iron<b>log</b></div><div class="tag">8-Week Plan</div></header>
+  <div class="weekbar">
+    <button id="wprev">&minus;</button>
+    <div class="wk"><div class="n" id="wknum">Week 1</div><div class="c" id="wkcap">Own the weights</div></div>
+    <button id="wnext">+</button>
+  </div>
+  <div class="goals">
+    <div class="goal bench"><div class="lab">Bench</div><div class="val" id="g-bench">&mdash;</div><div class="sub">goal 155 lb</div><div class="bar"><i id="bar-bench" style="width:0"></i></div></div>
+    <div class="goal pull"><div class="lab">Pullups</div><div class="val" id="g-pull">&mdash;</div><div class="sub">goal 8 reps</div><div class="bar"><i id="bar-pull" style="width:0"></i></div></div>
+    <div class="goal squat"><div class="lab">Squat</div><div class="val" id="g-squat">&mdash;</div><div class="sub">goal 155 lb</div><div class="bar"><i id="bar-squat" style="width:0"></i></div></div>
+  </div>
+  <div class="seg" id="seg">
+    <button data-d="push" class="on">Push</button>
+    <button data-d="pull">Pull</button>
+    <button data-d="legs">Legs</button>
+  </div>
+  <div class="daymeta"><span id="dm-loc"></span><span class="hiit" id="dm-hiit"></span></div>
+  <div class="card" id="exlist"></div>
+  <div class="actions"><button class="btn primary" id="logbtn">Log session</button></div>
+  <div class="chartcard">
+    <div class="chd"><h3>Progress</h3>
+      <select id="chartpick"></select>
+    </div>
+    <div class="metricrow" id="metricrow">
+      <button data-m="weight" class="on">Weight</button>
+      <button data-m="reps">Reps</button>
+    </div>
+    <div class="chartwrap"><canvas id="chart"></canvas><div class="chartempty" id="chartempty" style="display:none;">No data yet for this exercise.<br>Log it to see the trend.</div></div>
+  </div>
+  <div class="log"><div class="logh"><h3>History</h3><button id="exportbtn" class="exportbtn">Export CSV</button></div><div id="history"></div></div>
+</div>
+<div class="install" id="install">
+  <div class="txt"><b>Install Ironlog.</b> Tap the Share icon, then &ldquo;Add to Home Screen.&rdquo;</div>
+  <button class="x" id="installx">&times;</button>
+</div>
+<div class="toast" id="toast">Session logged</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const KEY='ironlog.v3';
+const GOALS={bench:155,pull:8,squat:155};
+const WEEKS=[
+  {n:1,cap:"Own the weights"},{n:2,cap:"Build"},{n:3,cap:"Build"},{n:4,cap:"Push"},
+  {n:5,cap:"Deload -10%"},{n:6,cap:"Push"},{n:7,cap:"Push"},{n:8,cap:"Peak / retest"}
+];
+const TARGETS={
+  bench:[75,80,85,90,80,95,100,105],
+  pulldown:[70,75,80,85,75,90,95,100],
+  squat:[45,90,100,110,95,120,130,140]
+};
+// each exercise has a stable id so logs stay linked across weeks.
+// anchor: which goal card it feeds (bench/pull/squat) or null.
+// series: which TARGETS row supplies the target chip, or null.
+const WORKOUTS={
+  push:{loc:"Mon community / Thu university", hiit:"+ HIIT after", ex:[
+    {id:"bench",   name:"Barbell bench press", scheme:"4x5",     anchor:"bench", series:"bench"},
+    {id:"incdb",   name:"Incline DB press",    scheme:"3x8",     anchor:null,    series:null, hint:"30 ea"},
+    {id:"ngpress", name:"Neutral-grip DB press",scheme:"3x8",    anchor:null,    series:null, hint:"skip if pinch"},
+    {id:"latraise",name:"Lateral raise",       scheme:"3x12-15", anchor:null,    series:null, hint:"light"},
+    {id:"incfly",  name:"Incline cable fly",   scheme:"2x12",    anchor:null,    series:null, hint:"light"}
+  ]},
+  pull:{loc:"Tue university / Fri community", hiit:"+ HIIT after", ex:[
+    {id:"pulldown",name:"Lat pulldown",        scheme:"3x8",     anchor:"pull",  series:"pulldown"},
+    {id:"pullneg", name:"Pullup negatives",    scheme:"3x3 slow",anchor:null,    series:null, hint:"log secs as reps"},
+    {id:"row",     name:"Seated cable row",    scheme:"3x8",     anchor:null,    series:null, hint:"65 lb"},
+    {id:"invrow",  name:"Band pullup / row",   scheme:"3x6-8",   anchor:null,    series:null},
+    {id:"face",    name:"Face pulls",          scheme:"3x15",    anchor:null,    series:null, hint:"light"},
+    {id:"curl",    name:"Bicep curls",         scheme:"3x10",    anchor:null,    series:null}
+  ]},
+  legs:{loc:"Wed university / Sat optional", hiit:"no HIIT", ex:[
+    {id:"squat",   name:"Goblet / hack squat", scheme:"4x8",     anchor:"squat", series:"squat"},
+    {id:"legpress",name:"Leg press",           scheme:"3x10-12", anchor:null,    series:null, hint:"moderate"},
+    {id:"rdl",     name:"Romanian deadlift",   scheme:"3x8",     anchor:null,    series:null, hint:"80 lb"},
+    {id:"lunge",   name:"Walking lunges",      scheme:"3x12/leg",anchor:null,    series:null, hint:"bodyweight"},
+    {id:"calf",    name:"Calf raises",         scheme:"3x15",    anchor:null,    series:null}
+  ]}
+};
+// lookup: exercise id -> {name, day}
+const EXMETA={};
+Object.keys(WORKOUTS).forEach(function(d){ WORKOUTS[d].ex.forEach(function(e){ EXMETA[e.id]={name:e.name,day:d}; }); });
+
+let cur='push', week=0, hist=load();
+let chartEx=null, chartMetric='weight';
+
+function load(){ try{return JSON.parse(localStorage.getItem(KEY))||[];}catch(e){return[];} }
+function persist(){ localStorage.setItem(KEY,JSON.stringify(hist)); }
+
+document.getElementById('wprev').onclick=function(){ if(week>0){week--; syncWeek();} };
+document.getElementById('wnext').onclick=function(){ if(week<7){week++; syncWeek();} };
+function syncWeek(){
+  document.getElementById('wknum').textContent='Week '+WEEKS[week].n;
+  document.getElementById('wkcap').textContent=WEEKS[week].cap;
+  renderEx();
+}
+const segBtns=[].slice.call(document.querySelectorAll('#seg button'));
+segBtns.forEach(function(b){ b.onclick=function(){ cur=b.dataset.d; segBtns.forEach(function(x){x.classList.toggle('on',x===b);}); renderEx(); }; });
+
+function renderEx(){
+  const w=WORKOUTS[cur];
+  document.getElementById('dm-loc').textContent=w.loc;
+  document.getElementById('dm-hiit').textContent=w.hiit;
+  document.getElementById('exlist').innerHTML=w.ex.map(function(ex){
+    var sub=ex.scheme;
+    if(ex.series){ const t=TARGETS[ex.series][week]; sub+=' &middot; <span class="t">target '+t+' lb</span>'; }
+    else if(ex.hint){ sub+=' &middot; '+ex.hint; }
+    return '<div class="rowx"><div class="ex"><div class="n">'+ex.name+'</div><div class="s">'+sub+'</div></div>'+
+      '<div class="fields">'+
+        '<div class="fld"><label>lb</label><input inputmode="numeric" pattern="[0-9]*" id="w-'+ex.id+'" placeholder="0"></div>'+
+        '<div class="fld"><label>reps</label><input inputmode="numeric" pattern="[0-9]*" id="r-'+ex.id+'" placeholder="0"></div>'+
+      '</div></div>';
+  }).join('');
+}
+
+document.getElementById('logbtn').onclick=function(){
+  const w=WORKOUTS[cur];
+  const entries={};
+  var any=false;
+  w.ex.forEach(function(ex){
+    const wv=document.getElementById('w-'+ex.id).value;
+    const rv=document.getElementById('r-'+ex.id).value;
+    if(wv!==''||rv!==''){
+      entries[ex.id]={w:wv!==''?Math.round(+wv):null, r:rv!==''?Math.round(+rv):null};
+      any=true;
+    }
+  });
+  if(!any){ toast('Enter at least one lift'); return; }
+  hist.push({id:Date.now(), date:Date.now(), day:cur, week:WEEKS[week].n, entries:entries});
+  persist();
+  renderEx(); // clear inputs
+  refresh();
+  toast('Session logged');
+  if(navigator.vibrate) navigator.vibrate(12);
+};
+
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('show'); },1400);
+}
+function fmtDate(ts){ return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function isoDate(ts){ const d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+function csvCell(s){ s=String(s==null?'':s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+function exportCSV(){
+  if(!hist.length){ toast('Nothing to export yet'); return; }
+  const rows=[['date','week','day','exercise','weight_lb','reps']];
+  // oldest-first for readability
+  hist.slice().sort(function(a,b){return a.date-b.date;}).forEach(function(e){
+    Object.keys(e.entries).forEach(function(id){
+      const v=e.entries[id]; const meta=EXMETA[id]||{name:id};
+      rows.push([isoDate(e.date), e.week||'', e.day, meta.name, v.w==null?'':v.w, v.r==null?'':v.r]);
+    });
+  });
+  const csv=rows.map(function(r){return r.map(csvCell).join(',');}).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='ironlog-'+isoDate(Date.now())+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  toast('CSV exported');
+}
+document.getElementById('exportbtn').onclick=exportCSV;
+
+function refresh(){
+  // goal cards: latest weight for anchor exercises (pull uses reps)
+  const anchors={bench:{id:"bench",metric:"w"}, pull:{id:"pulldown",metric:"w"}, squat:{id:"squat",metric:"w"}};
+  // pull goal card shows pullup-style reps if logged on pulldown; keep it simple: show latest pulldown weight? No- show reps toward 8.
+  // We'll show: bench latest weight, squat latest weight, pull latest reps from pullneg or pulldown reps.
+  function latest(exId, metric){
+    for(var i=hist.length-1;i>=0;i--){ const e=hist[i].entries[exId]; if(e && e[metric]!=null) return e[metric]; }
+    return null;
+  }
+  var bV=latest('bench','w'), sV=latest('squat','w');
+  var pV=latest('pullneg','r'); if(pV==null) pV=latest('pulldown','r');
+  setGoal('bench',bV); setGoal('squat',sV); setGoal('pull',pV);
+
+  renderHistory();
+  buildChartPicker();
+  draw();
+}
+function setGoal(k,v){
+  document.getElementById('g-'+k).textContent=v!=null?v:'\u2014';
+  document.getElementById('bar-'+k).style.width=v!=null?Math.min(100,Math.round(v/GOALS[k]*100))+'%':'0';
+}
+
+function renderHistory(){
+  const h=document.getElementById('history');
+  if(!hist.length){ h.innerHTML='<div class="empty">No sessions yet.<br>Log your first workout above.</div>'; return; }
+  h.innerHTML=hist.slice().reverse().map(function(e){
+    const lines=Object.keys(e.entries).map(function(id){
+      const v=e.entries[id]; const meta=EXMETA[id]||{name:id};
+      var val=[]; if(v.w!=null)val.push(v.w+' lb'); if(v.r!=null)val.push(v.r+' reps');
+      return '<span class="exn">'+meta.name+'</span> '+val.join(' \u00d7 ');
+    }).join('<br>');
+    return '<div class="logsession"><div class="lh"><span class="pill '+e.day+'">'+e.day+'</span>'+
+      '<span class="dt">'+fmtDate(e.date)+'</span><span class="wk">Week '+(e.week||'-')+'</span>'+
+      '<button class="del" data-id="'+e.id+'">\u00d7</button></div>'+
+      '<div class="lb">'+lines+'</div></div>';
+  }).join('');
+  [].slice.call(h.querySelectorAll('.del')).forEach(function(b){
+    b.onclick=function(){ hist=hist.filter(function(x){return x.id!=b.dataset.id;}); persist(); refresh(); };
+  });
+}
+
+function buildChartPicker(){
+  // list exercises that actually have logged data
+  const logged={};
+  hist.forEach(function(e){ Object.keys(e.entries).forEach(function(id){ logged[id]=true; }); });
+  const ids=Object.keys(logged);
+  const sel=document.getElementById('chartpick');
+  if(!ids.length){ sel.innerHTML='<option>No data yet</option>'; chartEx=null; return; }
+  if(chartEx===null || ids.indexOf(chartEx)<0) chartEx=ids[0];
+  sel.innerHTML=ids.map(function(id){
+    const meta=EXMETA[id]||{name:id};
+    return '<option value="'+id+'"'+(id===chartEx?' selected':'')+'>'+meta.name+'</option>';
+  }).join('');
+}
+document.getElementById('chartpick').onchange=function(){ chartEx=this.value; draw(); };
+[].slice.call(document.querySelectorAll('#metricrow button')).forEach(function(b){
+  b.onclick=function(){
+    chartMetric=b.dataset.m;
+    [].slice.call(document.querySelectorAll('#metricrow button')).forEach(function(x){x.classList.toggle('on',x===b);});
+    draw();
+  };
+});
+
+var chart;
+function draw(){
+  const empty=document.getElementById('chartempty');
+  const canvas=document.getElementById('chart');
+  if(!chartEx){ empty.style.display='block'; canvas.style.display='none'; if(chart){chart.destroy();chart=null;} return; }
+  const metric=chartMetric==='weight'?'w':'r';
+  const pts=[];
+  hist.forEach(function(e){ const v=e.entries[chartEx]; if(v && v[metric]!=null) pts.push({d:e.date,val:v[metric]}); });
+  if(!pts.length){ empty.style.display='block'; canvas.style.display='none'; if(chart){chart.destroy();chart=null;} return; }
+  empty.style.display='none'; canvas.style.display='block';
+  const labels=pts.map(function(p){return fmtDate(p.d);});
+  const data=pts.map(function(p){return p.val;});
+  const meta=EXMETA[chartEx]||{day:'push'};
+  const color=meta.day==='pull'?'#63b58a':(meta.day==='legs'?'#e0794a':'#5b9bd5');
+  if(chart) chart.destroy();
+  chart=new Chart(canvas,{type:'line',data:{labels:labels,datasets:[{
+    data:data,borderColor:color,backgroundColor:color,pointRadius:3,pointHoverRadius:5,borderWidth:2.5,tension:0.35,spanGaps:true
+  }]},options:{
+    responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#252019',borderColor:'#332c22',borderWidth:1,titleColor:'#f0e9dc',bodyColor:'#a89e8c',
+      callbacks:{label:function(c){return c.parsed.y+(chartMetric==='weight'?' lb':' reps');}}}},
+    scales:{
+      x:{ticks:{color:'#6f665a',font:{size:10},maxRotation:0},grid:{color:'#241f18'}},
+      y:{ticks:{color:'#6f665a',font:{size:10}},grid:{color:'#241f18'},title:{display:true,text:chartMetric==='weight'?'lb':'reps',color:'#6f665a',font:{size:10}}}
+    }
+  }});
+}
+
+(function(){
+  const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const standalone=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;
+  if(isiOS && !standalone && !localStorage.getItem('ironlog.hideinstall')) document.getElementById('install').classList.add('show');
+  document.getElementById('installx').onclick=function(){ document.getElementById('install').classList.remove('show'); localStorage.setItem('ironlog.hideinstall','1'); };
+})();
+
+syncWeek();
+refresh();
+</script>
+</body>
+</html>
