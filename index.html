@@ -42,8 +42,8 @@ header{padding:20px 2px 12px; display:flex; align-items:baseline; justify-conten
 .goal .bar i{display:block; height:100%; border-radius:3px; transition:width .5s;}
 .goal.bench .bar i{background:var(--bench);} .goal.pull .bar i{background:var(--pull);} .goal.squat .bar i{background:var(--squat);}
 .seg{display:flex; background:var(--panel); border-radius:12px; padding:4px; gap:4px; margin-bottom:14px;}
-.seg button{flex:1; border:none; background:transparent; color:var(--ink2); font-size:14px; font-weight:600;
-  padding:9px 0; border-radius:9px; font-family:inherit; transition:all .15s;}
+.seg button{flex:1; border:none; background:transparent; color:var(--ink2); font-size:13px; font-weight:600;
+  padding:9px 0; border-radius:8px; font-family:inherit; transition:all .15s;}
 .seg button.on{background:var(--gold); color:#231a08;}
 .daymeta{font-size:12px; color:var(--ink3); margin:0 2px 10px; display:flex; justify-content:space-between;}
 .daymeta .hiit{color:var(--gold);}
@@ -118,11 +118,7 @@ header{padding:20px 2px 12px; display:flex; align-items:baseline; justify-conten
     <div class="goal pull"><div class="lab">Pullups</div><div class="val" id="g-pull">&mdash;</div><div class="sub">goal 8 reps</div><div class="bar"><i id="bar-pull" style="width:0"></i></div></div>
     <div class="goal squat"><div class="lab">Squat</div><div class="val" id="g-squat">&mdash;</div><div class="sub">goal 155 lb</div><div class="bar"><i id="bar-squat" style="width:0"></i></div></div>
   </div>
-  <div class="seg" id="seg">
-    <button data-d="push" class="on">Push</button>
-    <button data-d="pull">Pull</button>
-    <button data-d="legs">Legs</button>
-  </div>
+  <div class="seg" id="seg"></div>
   <div class="daymeta"><span id="dm-loc"></span><span class="hiit" id="dm-hiit"></span></div>
   <div class="card" id="exlist"></div>
   <div class="actions"><button class="btn primary" id="logbtn">Log session</button></div>
@@ -156,18 +152,20 @@ const TARGETS={
   pulldown:[70,75,80,85,75,90,95,100],
   squat:[45,90,100,110,95,120,130,140]
 };
+// Day-based split across two gyms.
+// Mon/Tue/Fri = neighborhood gym; Wed/Thu = campus (assisted pullup machine, hack squat, racks).
 // each exercise has a stable id so logs stay linked across weeks.
 // anchor: which goal card it feeds (bench/pull/squat) or null.
 // series: which TARGETS row supplies the target chip, or null.
 const WORKOUTS={
-  push:{loc:"Mon community / Thu university", hiit:"+ HIIT after", ex:[
-    {id:"bench",   name:"Barbell bench press", scheme:"4x5",     anchor:"bench", series:"bench"},
+  mon:{label:"Mon", type:"push", loc:"Neighborhood gym", hiit:"+ HIIT after", ex:[
+    {id:"flatdbm", name:"Flat DB bench press", scheme:"4x6-8",   anchor:"dbbench", series:null, hint:"main press"},
     {id:"incdb",   name:"Incline DB press",    scheme:"3x8",     anchor:null,    series:null, hint:"30 ea"},
     {id:"ngpress", name:"Neutral-grip DB press",scheme:"3x8",    anchor:null,    series:null, hint:"skip if pinch"},
     {id:"latraise",name:"Lateral raise",       scheme:"3x12-15", anchor:null,    series:null, hint:"light"},
     {id:"incfly",  name:"Incline cable fly",   scheme:"2x12",    anchor:null,    series:null, hint:"light"}
   ]},
-  pull:{loc:"Tue university / Fri community", hiit:"+ HIIT after", ex:[
+  tue:{label:"Tue", type:"pull", loc:"Neighborhood gym", hiit:"+ HIIT after", ex:[
     {id:"pulldown",name:"Lat pulldown",        scheme:"3x8",     anchor:"pull",  series:"pulldown"},
     {id:"pullneg", name:"Pullup negatives",    scheme:"3x3 slow",anchor:null,    series:null, hint:"log secs as reps"},
     {id:"row",     name:"Seated cable row",    scheme:"3x8",     anchor:null,    series:null, hint:"65 lb"},
@@ -175,19 +173,41 @@ const WORKOUTS={
     {id:"face",    name:"Face pulls",          scheme:"3x15",    anchor:null,    series:null, hint:"light"},
     {id:"curl",    name:"Bicep curls",         scheme:"3x10",    anchor:null,    series:null}
   ]},
-  legs:{loc:"Wed university / Sat optional", hiit:"no HIIT", ex:[
-    {id:"squat",   name:"Goblet / hack squat", scheme:"4x8",     anchor:"squat", series:"squat"},
-    {id:"legpress",name:"Leg press",           scheme:"3x10-12", anchor:null,    series:null, hint:"moderate"},
+  wed:{label:"Wed", type:"legs", loc:"Campus - full racks", hiit:"no HIIT", ex:[
+    {id:"bench",   name:"Barbell bench press", scheme:"4x5",     anchor:"bench", series:"bench", hint:"goal lift - rack is free here"},
+    {id:"squat",   name:"Hack squat",          scheme:"4x8",     anchor:"squat", series:"squat", hint:"neck-friendly"},
     {id:"rdl",     name:"Romanian deadlift",   scheme:"3x8",     anchor:null,    series:null, hint:"80 lb"},
-    {id:"lunge",   name:"Walking lunges",      scheme:"3x12/leg",anchor:null,    series:null, hint:"bodyweight"},
+    {id:"lunge",   name:"Walking lunges",      scheme:"3x12/leg",anchor:null,    series:null, hint:"keep progressing"},
     {id:"calf",    name:"Calf raises",         scheme:"3x15",    anchor:null,    series:null}
+  ]},
+  thu:{label:"Thu", type:"pull", loc:"Campus - assist machine", hiit:"+ HIIT after", ex:[
+    {id:"assistpull",name:"Assisted pullups",  scheme:"4x6-8",   anchor:null,    series:null, hint:"lower assist over time"},
+    {id:"pulldown", name:"Lat pulldown",       scheme:"3x8",     anchor:"pull",  series:"pulldown"},
+    {id:"row1arm",  name:"Single-arm DB row",  scheme:"3x10",    anchor:null,    series:null, hint:"35 ea"},
+    {id:"bulgarian",name:"Bulgarian split squat",scheme:"3x8/leg",anchor:null,   series:null, hint:"leg exposure #2"},
+    {id:"reardelt", name:"Rear-delt fly",      scheme:"3x15",    anchor:null,    series:null, hint:"light"},
+    {id:"hammer",   name:"Hammer curls",       scheme:"3x10",    anchor:null,    series:null}
+  ]},
+  fri:{label:"Fri", type:"push", loc:"Neighborhood gym", hiit:"+ HIIT after", ex:[
+    {id:"incdbf",  name:"Incline DB press",    scheme:"4x8",     anchor:null,    series:null, hint:"upper chest, main"},
+    {id:"flatdb",  name:"Flat DB press",       scheme:"3x8",     anchor:"dbbench",series:null, hint:"30 ea"},
+    {id:"arnold",  name:"Arnold / neutral press",scheme:"3x10",  anchor:null,    series:null, hint:"skip if pinch"},
+    {id:"latraise2",name:"Lateral raise",      scheme:"3x15",    anchor:null,    series:null, hint:"light"},
+    {id:"dips",    name:"Dips or decline press",scheme:"2x10",   anchor:null,    series:null, hint:"bodyweight"}
   ]}
 };
-// lookup: exercise id -> {name, day}
+const DAYORDER=["mon","tue","wed","thu","fri"];
+// map a workout type to the pill color class used in history
+const TYPECLASS={push:"push",pull:"pull",legs:"legs"};
+// lookup: exercise id -> {name, day-type for chart color}
 const EXMETA={};
-Object.keys(WORKOUTS).forEach(function(d){ WORKOUTS[d].ex.forEach(function(e){ EXMETA[e.id]={name:e.name,day:d}; }); });
+Object.keys(WORKOUTS).forEach(function(d){ WORKOUTS[d].ex.forEach(function(e){ EXMETA[e.id]={name:e.name,day:WORKOUTS[d].type}; }); });
 
-let cur='push', week=0, hist=load();
+// resume at Week 2 (Week 1 done two weeks ago; last week skipped in Mexico City)
+let week=1;
+// default the day selector to today if it's a training day, else Monday
+(function(){ var wd=new Date().getDay(); var map={1:"mon",2:"tue",3:"wed",4:"thu",5:"fri"}; window.__startday=map[wd]||"mon"; })();
+let cur=window.__startday, hist=load();
 let chartEx=null, chartMetric='weight';
 
 function load(){ try{return JSON.parse(localStorage.getItem(KEY))||[];}catch(e){return[];} }
@@ -200,8 +220,19 @@ function syncWeek(){
   document.getElementById('wkcap').textContent=WEEKS[week].cap;
   renderEx();
 }
-const segBtns=[].slice.call(document.querySelectorAll('#seg button'));
-segBtns.forEach(function(b){ b.onclick=function(){ cur=b.dataset.d; segBtns.forEach(function(x){x.classList.toggle('on',x===b);}); renderEx(); }; });
+function buildDaySelector(){
+  const seg=document.getElementById('seg');
+  seg.innerHTML=DAYORDER.map(function(d){
+    return '<button data-d="'+d+'"'+(d===cur?' class="on"':'')+'>'+WORKOUTS[d].label+'</button>';
+  }).join('');
+  [].slice.call(seg.querySelectorAll('button')).forEach(function(b){
+    b.onclick=function(){
+      cur=b.dataset.d;
+      [].slice.call(seg.querySelectorAll('button')).forEach(function(x){x.classList.toggle('on',x===b);});
+      renderEx();
+    };
+  });
+}
 
 function renderEx(){
   const w=WORKOUTS[cur];
@@ -232,7 +263,7 @@ document.getElementById('logbtn').onclick=function(){
     }
   });
   if(!any){ toast('Enter at least one lift'); return; }
-  hist.push({id:Date.now(), date:Date.now(), day:cur, week:WEEKS[week].n, entries:entries});
+  hist.push({id:Date.now(), date:Date.now(), day:cur, type:WORKOUTS[cur].type, label:WORKOUTS[cur].label, week:WEEKS[week].n, entries:entries});
   persist();
   renderEx(); // clear inputs
   refresh();
@@ -250,12 +281,12 @@ function isoDate(ts){ const d=new Date(ts); return d.getFullYear()+'-'+String(d.
 function csvCell(s){ s=String(s==null?'':s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
 function exportCSV(){
   if(!hist.length){ toast('Nothing to export yet'); return; }
-  const rows=[['date','week','day','exercise','weight_lb','reps']];
+  const rows=[['date','week','day','type','exercise','weight_lb','reps']];
   // oldest-first for readability
   hist.slice().sort(function(a,b){return a.date-b.date;}).forEach(function(e){
     Object.keys(e.entries).forEach(function(id){
       const v=e.entries[id]; const meta=EXMETA[id]||{name:id};
-      rows.push([isoDate(e.date), e.week||'', e.day, meta.name, v.w==null?'':v.w, v.r==null?'':v.r]);
+      rows.push([isoDate(e.date), e.week||'', (e.label||e.day), (e.type||''), meta.name, v.w==null?'':v.w, v.r==null?'':v.r]);
     });
   });
   const csv=rows.map(function(r){return r.map(csvCell).join(',');}).join('\n');
@@ -300,7 +331,8 @@ function renderHistory(){
       var val=[]; if(v.w!=null)val.push(v.w+' lb'); if(v.r!=null)val.push(v.r+' reps');
       return '<span class="exn">'+meta.name+'</span> '+val.join(' \u00d7 ');
     }).join('<br>');
-    return '<div class="logsession"><div class="lh"><span class="pill '+e.day+'">'+e.day+'</span>'+
+    var ptype=e.type||e.day; var plabel=(e.label?e.label+' · ':'')+(e.type||e.day);
+    return '<div class="logsession"><div class="lh"><span class="pill '+ptype+'">'+plabel+'</span>'+
       '<span class="dt">'+fmtDate(e.date)+'</span><span class="wk">Week '+(e.week||'-')+'</span>'+
       '<button class="del" data-id="'+e.id+'">\u00d7</button></div>'+
       '<div class="lb">'+lines+'</div></div>';
@@ -367,6 +399,7 @@ function draw(){
   document.getElementById('installx').onclick=function(){ document.getElementById('install').classList.remove('show'); localStorage.setItem('ironlog.hideinstall','1'); };
 })();
 
+buildDaySelector();
 syncWeek();
 refresh();
 </script>
