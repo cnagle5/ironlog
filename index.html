@@ -114,9 +114,9 @@ header{padding:20px 2px 12px; display:flex; align-items:baseline; justify-conten
     <button id="wnext">+</button>
   </div>
   <div class="goals">
-    <div class="goal bench"><div class="lab">Bench</div><div class="val" id="g-bench">&mdash;</div><div class="sub">goal 155 lb</div><div class="bar"><i id="bar-bench" style="width:0"></i></div></div>
-    <div class="goal pull"><div class="lab">Pullups</div><div class="val" id="g-pull">&mdash;</div><div class="sub">goal 8 reps</div><div class="bar"><i id="bar-pull" style="width:0"></i></div></div>
-    <div class="goal squat"><div class="lab">Squat</div><div class="val" id="g-squat">&mdash;</div><div class="sub">goal 155 lb</div><div class="bar"><i id="bar-squat" style="width:0"></i></div></div>
+    <div class="goal bench"><div class="lab">DB Bench</div><div class="val" id="g-bench">&mdash;</div><div class="sub">goal 75 ea</div><div class="bar"><i id="bar-bench" style="width:0"></i></div></div>
+    <div class="goal pull"><div class="lab">Pulldown</div><div class="val" id="g-pull">&mdash;</div><div class="sub">goal 155 lb</div><div class="bar"><i id="bar-pull" style="width:0"></i></div></div>
+    <div class="goal squat"><div class="lab">Leg press</div><div class="val" id="g-squat">&mdash;</div><div class="sub">goal 250 lb</div><div class="bar"><i id="bar-squat" style="width:0"></i></div></div>
   </div>
   <div class="seg" id="seg"></div>
   <div class="daymeta"><span id="dm-loc"></span><span class="hiit" id="dm-hiit"></span></div>
@@ -142,7 +142,7 @@ header{padding:20px 2px 12px; display:flex; align-items:baseline; justify-conten
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 const KEY='ironlog.v3';
-const GOALS={bench:155,pull:8,squat:155};
+const GOALS={bench:75,pull:155,squat:250};
 const WEEKS=[
   {n:1,cap:"Own the weights"},{n:2,cap:"Build"},{n:3,cap:"Build"},{n:4,cap:"Push"},
   {n:5,cap:"Deload -10%"},{n:6,cap:"Push"},{n:7,cap:"Push"},{n:8,cap:"Peak / retest"}
@@ -150,50 +150,50 @@ const WEEKS=[
 const TARGETS={
   bench:[75,80,85,90,80,95,100,105],
   pulldown:[70,75,80,85,75,90,95,100],
-  squat:[45,90,100,110,95,120,130,140]
+  squat:[130,150,170,190,160,205,225,245]
 };
-// Day-based split across two gyms.
-// Mon/Tue/Fri = neighborhood gym; Wed/Thu = campus (assisted pullup machine, hack squat, racks).
+// Dumbbell + machine driven split. Both gyms are equivalent now.
+// No bands, no hanging negatives, no assist machine. Barbell bench/squat are optional bonuses only.
 // each exercise has a stable id so logs stay linked across weeks.
-// anchor: which goal card it feeds (bench/pull/squat) or null.
+// anchor: which goal card it feeds (bench/pull/squat/dbbench) or null.
 // series: which TARGETS row supplies the target chip, or null.
 const WORKOUTS={
-  mon:{label:"Mon", type:"push", loc:"Neighborhood gym", hiit:"+ HIIT after", ex:[
-    {id:"flatdbm", name:"Flat DB bench press", scheme:"4x6-8",   anchor:"dbbench", series:null, hint:"main press"},
-    {id:"incdb",   name:"Incline DB press",    scheme:"3x8",     anchor:null,    series:null, hint:"30 ea"},
-    {id:"ngpress", name:"Neutral-grip DB press",scheme:"3x8",    anchor:null,    series:null, hint:"skip if pinch"},
-    {id:"latraise",name:"Lateral raise",       scheme:"3x12-15", anchor:null,    series:null, hint:"light"},
-    {id:"incfly",  name:"Incline cable fly",   scheme:"2x12",    anchor:null,    series:null, hint:"light"}
+  mon:{label:"Mon", type:"push", loc:"Chest & shoulders", hiit:"+ HIIT after", ex:[
+    {id:"flatdbm", name:"Flat DB bench press", scheme:"4x6-8",   anchor:"dbbench", series:null, hint:"main press - go heavy"},
+    {id:"incdb",   name:"Incline DB press",    scheme:"3x8-10",  anchor:null,    series:null, hint:"upper chest"},
+    {id:"machpress",name:"Machine chest press",scheme:"3x10",    anchor:null,    series:null, hint:"safe to push near failure"},
+    {id:"latraise",name:"DB lateral raise",    scheme:"3x12-15", anchor:null,    series:null, hint:"shoulders"},
+    {id:"incfly",  name:"Incline cable fly",   scheme:"2x12",    anchor:null,    series:null, hint:"upper-inner chest"}
   ]},
-  tue:{label:"Tue", type:"pull", loc:"Neighborhood gym", hiit:"+ HIIT after", ex:[
-    {id:"pulldown",name:"Lat pulldown",        scheme:"3x8",     anchor:"pull",  series:"pulldown"},
-    {id:"pullneg", name:"Pullup negatives",    scheme:"3x3 slow",anchor:null,    series:null, hint:"log secs as reps"},
-    {id:"row",     name:"Seated cable row",    scheme:"3x8",     anchor:null,    series:null, hint:"65 lb"},
-    {id:"invrow",  name:"Band pullup / row",   scheme:"3x6-8",   anchor:null,    series:null},
-    {id:"face",    name:"Face pulls",          scheme:"3x15",    anchor:null,    series:null, hint:"light"},
+  tue:{label:"Tue", type:"pull", loc:"Back & pull strength", hiit:"+ HIIT after", ex:[
+    {id:"pulldown",name:"Lat pulldown",        scheme:"4x8",     anchor:"pull",  series:"pulldown", hint:"pullup driver - go heavy"},
+    {id:"row",     name:"Seated cable row",    scheme:"3x8-10",  anchor:null,    series:null, hint:"mid-back"},
+    {id:"row1arm", name:"Single-arm DB row",   scheme:"3x10",    anchor:null,    series:null, hint:"35 ea"},
+    {id:"pullover",name:"DB or cable pullover",scheme:"3x12",    anchor:null,    series:null, hint:"lats, pullup pattern"},
+    {id:"face",    name:"Face pulls",          scheme:"3x15",    anchor:null,    series:null, hint:"shoulder health"},
     {id:"curl",    name:"Bicep curls",         scheme:"3x10",    anchor:null,    series:null}
   ]},
-  wed:{label:"Wed", type:"legs", loc:"Campus - full racks", hiit:"no HIIT", ex:[
-    {id:"bench",   name:"Barbell bench press", scheme:"4x5",     anchor:"bench", series:"bench", hint:"goal lift - rack is free here"},
-    {id:"squat",   name:"Hack squat",          scheme:"4x8",     anchor:"squat", series:"squat", hint:"neck-friendly"},
-    {id:"rdl",     name:"Romanian deadlift",   scheme:"3x8",     anchor:null,    series:null, hint:"80 lb"},
+  wed:{label:"Wed", type:"legs", loc:"Legs", hiit:"no HIIT", ex:[
+    {id:"legpress",name:"Leg press",           scheme:"4x8-10",  anchor:"squat", series:"squat", hint:"main - load heavy & safe"},
+    {id:"goblet",  name:"Goblet squat",        scheme:"3x10",    anchor:null,    series:null, hint:"DB at chest, no bar"},
+    {id:"rdl",     name:"DB Romanian deadlift",scheme:"3x8-10",  anchor:null,    series:null, hint:"hamstrings/glutes"},
     {id:"lunge",   name:"Walking lunges",      scheme:"3x12/leg",anchor:null,    series:null, hint:"keep progressing"},
     {id:"calf",    name:"Calf raises",         scheme:"3x15",    anchor:null,    series:null}
   ]},
-  thu:{label:"Thu", type:"pull", loc:"Campus - assist machine", hiit:"+ HIIT after", ex:[
-    {id:"assistpull",name:"Assisted pullups",  scheme:"4x6-8",   anchor:null,    series:null, hint:"lower assist over time"},
-    {id:"pulldown", name:"Lat pulldown",       scheme:"3x8",     anchor:"pull",  series:"pulldown"},
-    {id:"row1arm",  name:"Single-arm DB row",  scheme:"3x10",    anchor:null,    series:null, hint:"35 ea"},
-    {id:"bulgarian",name:"Bulgarian split squat",scheme:"3x8/leg",anchor:null,   series:null, hint:"leg exposure #2"},
-    {id:"reardelt", name:"Rear-delt fly",      scheme:"3x15",    anchor:null,    series:null, hint:"light"},
-    {id:"hammer",   name:"Hammer curls",       scheme:"3x10",    anchor:null,    series:null}
+  thu:{label:"Thu", type:"pull", loc:"Pull volume & arms", hiit:"+ HIIT after", ex:[
+    {id:"pulldown2",name:"Lat pulldown (wide)",scheme:"4x8-10",  anchor:null,    series:null, hint:"2nd pullup session"},
+    {id:"machrow", name:"Machine / chest-supported row",scheme:"3x10",anchor:null,series:null, hint:"strict, no swing"},
+    {id:"highrow", name:"High cable row",      scheme:"3x12",    anchor:null,    series:null, hint:"upper back"},
+    {id:"split",   name:"DB split squat",      scheme:"3x8/leg", anchor:null,    series:null, hint:"leg exposure #2"},
+    {id:"reardelt",name:"Rear-delt fly",       scheme:"3x15",    anchor:null,    series:null, hint:"light"},
+    {id:"hammer",  name:"Hammer curls",        scheme:"3x10",    anchor:null,    series:null}
   ]},
-  fri:{label:"Fri", type:"push", loc:"Neighborhood gym", hiit:"+ HIIT after", ex:[
+  fri:{label:"Fri", type:"push", loc:"Chest, shoulders, arms", hiit:"+ HIIT after", ex:[
     {id:"incdbf",  name:"Incline DB press",    scheme:"4x8",     anchor:null,    series:null, hint:"upper chest, main"},
-    {id:"flatdb",  name:"Flat DB press",       scheme:"3x8",     anchor:"dbbench",series:null, hint:"30 ea"},
-    {id:"arnold",  name:"Arnold / neutral press",scheme:"3x10",  anchor:null,    series:null, hint:"skip if pinch"},
-    {id:"latraise2",name:"Lateral raise",      scheme:"3x15",    anchor:null,    series:null, hint:"light"},
-    {id:"dips",    name:"Dips or decline press",scheme:"2x10",   anchor:null,    series:null, hint:"bodyweight"}
+    {id:"flatdb",  name:"Flat DB press",       scheme:"3x8",     anchor:"dbbench",series:null, hint:"track vs Mon"},
+    {id:"shpress", name:"Seated DB shoulder press",scheme:"3x8-10",anchor:null,  series:null, hint:"neutral grip if pinch"},
+    {id:"latraise2",name:"DB lateral raise",   scheme:"3x15",    anchor:null,    series:null, hint:"light"},
+    {id:"tri",     name:"Cable triceps / dips", scheme:"3x12",   anchor:null,    series:null, hint:"arms"}
   ]}
 };
 const DAYORDER=["mon","tue","wed","thu","fri"];
@@ -301,16 +301,17 @@ function exportCSV(){
 document.getElementById('exportbtn').onclick=exportCSV;
 
 function refresh(){
-  // goal cards: latest weight for anchor exercises (pull uses reps)
-  const anchors={bench:{id:"bench",metric:"w"}, pull:{id:"pulldown",metric:"w"}, squat:{id:"squat",metric:"w"}};
-  // pull goal card shows pullup-style reps if logged on pulldown; keep it simple: show latest pulldown weight? No- show reps toward 8.
-  // We'll show: bench latest weight, squat latest weight, pull latest reps from pullneg or pulldown reps.
+  // goal cards read the latest logged value for the current anchor exercises.
   function latest(exId, metric){
     for(var i=hist.length-1;i>=0;i--){ const e=hist[i].entries[exId]; if(e && e[metric]!=null) return e[metric]; }
     return null;
   }
-  var bV=latest('bench','w'), sV=latest('squat','w');
-  var pV=latest('pullneg','r'); if(pV==null) pV=latest('pulldown','r');
+  // Bench card = DB bench working weight (per dumbbell). Track flatdbm (Mon) or flatdb (Fri).
+  var bV=latest('flatdbm','w'); if(bV==null) bV=latest('flatdb','w');
+  // Squat card = leg press working weight.
+  var sV=latest('legpress','w');
+  // Pull card = pulldown weight (driver toward first pullup). Prefer Tue pulldown, else Thu wide.
+  var pV=latest('pulldown','w'); if(pV==null) pV=latest('pulldown2','w');
   setGoal('bench',bV); setGoal('squat',sV); setGoal('pull',pV);
 
   renderHistory();
