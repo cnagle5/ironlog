@@ -57,7 +57,14 @@ header{padding:20px 2px 12px; display:flex; align-items:baseline; justify-conten
 .rowx .fields{display:flex; gap:7px; align-items:center;}
 .rowx .fld{display:flex; flex-direction:column; align-items:center; gap:3px;}
 .rowx .fld label{font-size:9px; color:var(--ink3); text-transform:uppercase; letter-spacing:0.5px;}
-.rowx input{width:56px; height:38px; background:var(--panel2); border:0.5px solid var(--line);
+.rowx .levelup{width:34px; height:38px; border-radius:9px; background:var(--panel2); border:0.5px solid var(--line);
+  color:var(--ink3); font-size:13px; font-family:inherit; align-self:flex-end; padding:0;}
+.rowx .levelup.on{background:var(--gold); color:#231a08; border-color:var(--gold);}
+.rowx .levelup.nudge{border-color:var(--gold); color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset;}
+.rowx .sug{font-size:11px; color:var(--ink3); margin-top:4px;}
+.rowx .sug.up{color:var(--gold); font-weight:700;}
+.rowx .sug.nudge{color:var(--gold);}
+.rowx input{width:50px; height:38px; background:var(--panel2); border:0.5px solid var(--line);
   border-radius:9px; color:var(--ink); text-align:center; font-size:16px; font-weight:600; font-family:inherit; outline:none;}
 .rowx input:focus{border-color:var(--gold);}
 .rowx input::placeholder{color:var(--ink3); font-weight:400;}
@@ -199,9 +206,23 @@ const WORKOUTS={
 const DAYORDER=["mon","tue","wed","thu","fri"];
 // map a workout type to the pill color class used in history
 const TYPECLASS={push:"push",pull:"pull",legs:"legs"};
-// lookup: exercise id -> {name, day-type for chart color}
+// increment for the "level up" suggestion: machines & leg press jump +10, everything else (DB, cables, isolation) +5
+function incFor(name){
+  var n=name.toLowerCase();
+  if(n.indexOf('leg press')>=0 || n.indexOf('machine')>=0 || n.indexOf('pulldown')>=0 || n.indexOf('cable row')>=0 || (n.indexOf('cable')>=0 && n.indexOf('row')>=0)) return 10;
+  return 5;
+}
+// lookup: exercise id -> {name, day-type for chart color, inc}
 const EXMETA={};
-Object.keys(WORKOUTS).forEach(function(d){ WORKOUTS[d].ex.forEach(function(e){ EXMETA[e.id]={name:e.name,day:WORKOUTS[d].type}; }); });
+// parse the top of the rep range from a scheme like "3x8-10" -> 10, "4x6-8" -> 8, "3x10" -> 10, "3x12/leg" -> 12
+function topReps(scheme){
+  var mm=String(scheme).match(/x\s*(\d+)\s*-\s*(\d+)/i);
+  if(mm) return parseInt(mm[2],10);
+  var single=String(scheme).match(/x\s*(\d+)/i);
+  if(single) return parseInt(single[1],10);
+  return null;
+}
+Object.keys(WORKOUTS).forEach(function(d){ WORKOUTS[d].ex.forEach(function(e){ EXMETA[e.id]={name:e.name,day:WORKOUTS[d].type,inc:incFor(e.name),top:topReps(e.scheme)}; }); });
 
 // resume at Week 2 (Week 1 done two weeks ago; last week skipped in Mexico City)
 let week=1;
@@ -212,6 +233,18 @@ let chartEx=null, chartMetric='weight';
 
 function load(){ try{return JSON.parse(localStorage.getItem(KEY))||[];}catch(e){return[];} }
 function persist(){ localStorage.setItem(KEY,JSON.stringify(hist)); }
+
+// progression state per exercise id: { last: <weight last logged>, up: <bool, flagged to level up> }
+const PKEY='ironlog.prog.v1';
+var prog=loadProg();
+function loadProg(){ try{return JSON.parse(localStorage.getItem(PKEY))||{};}catch(e){return{};} }
+function persistProg(){ localStorage.setItem(PKEY,JSON.stringify(prog)); }
+// the suggested weight for an exercise this session: last weight + increment if flagged up, else last weight
+function suggestion(exId){
+  const p=prog[exId]; if(!p||p.last==null) return null;
+  if(p.up){ const meta=EXMETA[exId]||{inc:5}; return {val:p.last+meta.inc, leveled:true}; }
+  return {val:p.last, leveled:false};
+}
 
 document.getElementById('wprev').onclick=function(){ if(week>0){week--; syncWeek();} };
 document.getElementById('wnext').onclick=function(){ if(week<7){week++; syncWeek();} };
@@ -242,12 +275,39 @@ function renderEx(){
     var sub=ex.scheme;
     if(ex.series){ const t=TARGETS[ex.series][week]; sub+=' &middot; <span class="t">target '+t+' lb</span>'; }
     else if(ex.hint){ sub+=' &middot; '+ex.hint; }
-    return '<div class="rowx"><div class="ex"><div class="n">'+ex.name+'</div><div class="s">'+sub+'</div></div>'+
+    const sug=suggestion(ex.id);
+    var sugLine='';
+    const pr=prog[ex.id];
+    const nudge=(pr && pr.hitTop && !(pr.up));
+    if(sug){
+      if(sug.leveled) sugLine='<div class="sug up">&#9650; level up &rarr; try '+sug.val+' lb</div>';
+      else if(nudge) sugLine='<div class="sug nudge">hit top reps last time &mdash; go up if it was easy</div>';
+      else sugLine='<div class="sug">last: '+sug.val+' lb</div>';
+    }
+    const ph=sug?String(sug.val):'0';
+    var upCls='';
+    if(prog[ex.id]&&prog[ex.id].up) upCls=' on';
+    else if(nudge) upCls=' nudge';
+    return '<div class="rowx"><div class="ex"><div class="n">'+ex.name+'</div><div class="s">'+sub+'</div>'+sugLine+'</div>'+
       '<div class="fields">'+
-        '<div class="fld"><label>lb</label><input inputmode="numeric" pattern="[0-9]*" id="w-'+ex.id+'" placeholder="0"></div>'+
+        '<div class="fld"><label>lb</label><input inputmode="numeric" pattern="[0-9]*" id="w-'+ex.id+'" placeholder="'+ph+'"></div>'+
         '<div class="fld"><label>reps</label><input inputmode="numeric" pattern="[0-9]*" id="r-'+ex.id+'" placeholder="0"></div>'+
+        '<button class="levelup'+upCls+'" data-ex="'+ex.id+'" title="Flag to go up next time">&#9650;</button>'+
       '</div></div>';
   }).join('');
+  // wire level-up buttons
+  [].slice.call(document.querySelectorAll('#exlist .levelup')).forEach(function(b){
+    b.onclick=function(){
+      const id=b.dataset.ex;
+      if(!prog[id]) prog[id]={last:null,up:false};
+      prog[id].up=!prog[id].up;
+      if(prog[id].up) prog[id].hitTop=false; // acting on the nudge resolves it
+      persistProg();
+      b.classList.remove('nudge');
+      b.classList.toggle('on',prog[id].up);
+      if(navigator.vibrate) navigator.vibrate(8);
+    };
+  });
 }
 
 document.getElementById('logbtn').onclick=function(){
@@ -255,17 +315,32 @@ document.getElementById('logbtn').onclick=function(){
   const entries={};
   var any=false;
   w.ex.forEach(function(ex){
-    const wv=document.getElementById('w-'+ex.id).value;
+    var wv=document.getElementById('w-'+ex.id).value;
     const rv=document.getElementById('r-'+ex.id).value;
+    // if weight left blank but a suggestion is showing and reps were entered, use the suggested weight
+    const sug=suggestion(ex.id);
+    if(wv==='' && rv!=='' && sug) wv=String(sug.val);
     if(wv!==''||rv!==''){
-      entries[ex.id]={w:wv!==''?Math.round(+wv):null, r:rv!==''?Math.round(+rv):null};
+      const wnum=wv!==''?Math.round(+wv):null;
+      entries[ex.id]={w:wnum, r:rv!==''?Math.round(+rv):null};
       any=true;
+      // update progression state: remember the weight used, clear the level-up flag
+      if(wnum!=null){
+        if(!prog[ex.id]) prog[ex.id]={last:null,up:false};
+        prog[ex.id].last=wnum;
+        prog[ex.id].up=false;
+        // passive nudge: did the logged reps reach the top of the range? (reminder only, never auto-flags)
+        const rnum=rv!==''?Math.round(+rv):null;
+        const meta=EXMETA[ex.id];
+        prog[ex.id].hitTop=(rnum!=null && meta && meta.top!=null && rnum>=meta.top);
+      }
     }
   });
   if(!any){ toast('Enter at least one lift'); return; }
+  persistProg();
   hist.push({id:Date.now(), date:Date.now(), day:cur, type:WORKOUTS[cur].type, label:WORKOUTS[cur].label, week:WEEKS[week].n, entries:entries});
   persist();
-  renderEx(); // clear inputs
+  renderEx(); // clear inputs + refresh suggestions
   refresh();
   toast('Session logged');
   if(navigator.vibrate) navigator.vibrate(12);
